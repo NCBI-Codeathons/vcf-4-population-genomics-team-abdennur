@@ -130,6 +130,7 @@ def read_vcf_as_pandas(
     info_fields: list[str] | None = None,
     sample_fields: list[str] | None = None,
     samples: list[str] | None = None,
+    include_unspecified: bool = False,
 ) -> pd.DataFrame:
     """
     Read a VCF into a pandas dataframe, extracting INFO and sample genotype fields.
@@ -165,7 +166,9 @@ def read_vcf_as_pandas(
         if samples is None:
             samples = list(f.header.samples)
 
-        records = _read_vcf_as_records(f, query, info_fields, sample_fields, samples)
+        records = _read_vcf_as_records(
+            f, query, info_fields, sample_fields, samples, include_unspecified
+        )
 
     return pd.DataFrame.from_records(records)
 
@@ -176,6 +179,7 @@ def read_vcf_as_polars(
     info_fields: list[str] | None = None,
     sample_fields: list[str] | None = None,
     samples: list[str] | None = None,
+    include_unspecified: bool = False,
 ) -> pd.DataFrame:
     """
     Read a VCF into a polars dataframe, extracting INFO and sample genotype fields.
@@ -211,6 +215,8 @@ def read_vcf_as_polars(
         if samples is None:
             samples = list(f.header.samples)
 
-        records = _read_vcf_as_records(f, query, info_fields, sample_fields, samples)
+        records = _read_vcf_as_records(
+            f, query, info_fields, sample_fields, samples, include_unspecified
+        )
 
     return pl.from_records(records)
