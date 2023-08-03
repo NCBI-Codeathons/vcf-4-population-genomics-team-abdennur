@@ -74,7 +74,9 @@ def read_sample_schema(f: pysam.VariantFile) -> pd.DataFrame:
     )
 
 
-def _read_vcf_as_records(f, query, info_fields, sample_fields, samples, include_unspecified):
+def _read_vcf_as_records(
+    f, query, info_fields, sample_fields, samples, include_unspecified
+):
     if query is not None:
         query = f.fetch(*bioframe.parse_region(query))
     else:
@@ -127,11 +129,32 @@ def read_vcf_as_pandas(
     query: str | None = None,
     info_fields: list[str] | None = None,
     sample_fields: list[str] | None = None,
-    samples: list[str] | None = None
+    samples: list[str] | None = None,
 ) -> pd.DataFrame:
+    """
+    Read a VCF into a pandas dataframe, extracting INFO and sample genotype fields.
 
+    Parameters
+    ----------
+    path : str
+        Path to VCF file.
+    query : str, optional
+        Genomic range query string. If None, all records will be read.
+    info_fields : list[str], optional
+        List of fields to extract from the INFO column. If None, all fields
+        will be extracted.
+    sample_fields: list[str], optional
+        List of fields to extract from the sample genotype columns. If None,
+        all fields will be extracted.
+    samples : list[str], optional
+        List of samples to extract. If None, all samples will be extracted.
+
+    Returns
+    -------
+    pd.DataFrame
+        Pandas DataFrame with columns corresponding to the requested fields.
+    """
     with pysam.VariantFile(path) as f:
-
         info_schema = read_info_schema(f)
         sample_schema = read_sample_schema(f)
 
@@ -148,15 +171,36 @@ def read_vcf_as_pandas(
 
 
 def read_vcf_as_polars(
-    vcf_path: str,
+    path: str,
     query: str | None = None,
     info_fields: list[str] | None = None,
     sample_fields: list[str] | None = None,
-    samples: list[str] | None = None
+    samples: list[str] | None = None,
 ) -> pd.DataFrame:
+    """
+    Read a VCF into a polars dataframe, extracting INFO and sample genotype fields.
 
-    with pysam.VariantFile(vcf_path) as f:
+    Parameters
+    ----------
+    path : str
+        Path to VCF file.
+    query : str, optional
+        Genomic range query string. If None, all records will be read.
+    info_fields : list[str], optional
+        List of fields to extract from the INFO column. If None, all fields
+        will be extracted.
+    sample_fields: list[str], optional
+        List of fields to extract from the sample genotype columns. If None,
+        all fields will be extracted.
+    samples : list[str], optional
+        List of samples to extract. If None, all samples will be extracted.
 
+    Returns
+    -------
+    pl.DataFrame
+        Polars DataFrame with columns corresponding to the requested fields.
+    """
+    with pysam.VariantFile(path) as f:
         info_schema = read_info_schema(f)
         sample_schema = read_sample_schema(f)
 
