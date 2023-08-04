@@ -48,12 +48,12 @@ def _read_vcf_as_records(
     include_unspecified: bool,
 ) -> list[dict[str, Any]]:
     if query is not None:
-        query = f.fetch(*bioframe.parse_region(query))
+        record_iter = f.fetch(*bioframe.parse_region(query))
     else:
-        query = f
+        record_iter = f
 
     records = []
-    for record in query:
+    for record in record_iter:
         # Main fields
         dct = {
             "chrom": record.chrom,
