@@ -1,0 +1,31 @@
+*.swp
+*.swo
+*~
+
+*.py[cod]
+__pycache__
+
+# test and coverage artifacts
+.cache
+.pytest_cache
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# setup and build artifacts
+docs/_*
+*.egg-info/
+dist/
+build/
+MANIFEST
+
+# OS-generated files
+.DS_Store
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+tmp/
+.venv/
