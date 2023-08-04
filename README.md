@@ -26,7 +26,7 @@ We will use [oxbow](https://github.com/abdenlab/oxbow) to read VCF files into Ap
 - Support for extracting into Pandas and Polars DataFrames in Python
 - Refactored notebook code into a Python module
 
-[Presentation](https://docs.google.com/presentation/d/1VkJh5PCRAdye-MMFUALmTpRJRatIB9BdlmX6Y3cdNtE/edit?usp=sharing)
+[Presentation](https://docs.google.com/presentation/d/1M_U9kfA5Ew72ONt258ZL2hMz-Uibl4XXwQmsz3gppyE/edit?usp=sharing)
 
 ## Future Work
 - Support for multiple backends (oxbow, pysam, cyvcf2)
