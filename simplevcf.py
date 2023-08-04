@@ -79,7 +79,7 @@ def _read_vcf_as_records(
                 for key, value in genotype.items():
                     if key in sample_fields or include_unspecified:
                         if key == "GT":
-                            dct[sample] = list(genotype[key])
+                            dct[f"{sample}.GT"] = list(genotype[key])
                             dct[f"{sample}.phased"] = genotype.phased
                         elif isinstance(value, tuple):
                             dct[f"{sample}.{key}"] = list(value)
@@ -192,7 +192,21 @@ def read_vcf_as_pandas(
             f, query, set(info_fields), set(sample_fields), samples, include_unspecified
         )
 
-    return pd.DataFrame.from_records(records)
+    df = pd.DataFrame.from_records(records)
+
+    columns = (
+        ["chrom", "pos", "id", "ref", "alts", "qual", "filters"]
+        + info_fields
+        + [f"{sample}.{field}" for sample in samples
+           for field in [f"phased", *sample_fields]]
+    )
+    columns = columns + list(set(df.columns) - set(columns))
+
+    for col in columns:
+        if col not in df.columns:
+            df[col] = pd.NA
+
+    return df[columns].fillna(np.nan)
 
 
 def read_vcf_as_polars(
@@ -241,4 +255,19 @@ def read_vcf_as_polars(
             f, query, set(info_fields), set(sample_fields), samples, include_unspecified
         )
 
-    return pl.from_records(records)
+    df = pl.from_records(records)
+
+    columns = (
+        ["chrom", "pos", "id", "ref", "alts", "qual", "filters"]
+        + info_fields
+        + [f"{sample}.{field}" for sample in samples
+           for field in [f"phased", *sample_fields]]
+    )
+    columns = columns + list(set(df.columns) - set(columns))
+
+    for col in columns:
+        if col not in df.columns:
+            df = df.with_columns(pl.lit(None).alias(col))
+
+    return df.select(columns)
+    # return df[columns].fillna(np.nan)
