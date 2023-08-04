@@ -1,4 +1,5 @@
-# Team Project Name
+# Transforming VCFs for Data Science
+
 
 List of participants and affiliations:
 - Nezar Abdennur, UMass Chan Medical School (Team Leader)
