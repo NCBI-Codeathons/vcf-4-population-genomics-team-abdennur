@@ -67,19 +67,17 @@ def _read_vcf_as_records(
 
         # Info
         for key, value in record.info.items():
-            if key in info_fields:
+            if key in info_fields or include_unspecified:
                 if isinstance(value, tuple):
                     dct[key] = list(value)
                 else:
                     dct[key] = value
-            elif include_unspecified:
-                dct[key] = value
 
         # Samples
         for sample, genotype in record.samples.items():
-            if sample in samples:
+            if sample in samples or include_unspecified:
                 for key, value in genotype.items():
-                    if key in sample_fields:
+                    if key in sample_fields or include_unspecified:
                         if key == "GT":
                             dct[sample] = list(genotype[key])
                             dct[f"{sample}.phased"] = genotype.phased
@@ -87,8 +85,6 @@ def _read_vcf_as_records(
                             dct[f"{sample}.{key}"] = list(value)
                         else:
                             dct[f"{sample}.{key}"] = value
-                    elif include_unspecified:
-                        dct[f"{sample}.{key}"] = value
         records.append(dct)
 
     return records
