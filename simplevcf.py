@@ -1,5 +1,5 @@
 from __future__ import annotations
-from io import BytesIO
+from typing import Any
 
 import numpy as np
 import oxbow as ox
@@ -10,7 +10,7 @@ import pysam
 import bioframe
 
 
-# This dictionary maps the VCF-derived input types to numpy/pandas dtypes
+# Maps the VCF-derived input types to numpy/pandas dtypes
 TYPE_MAP = {
     "Integer": "int64",
     "Float": "float64",
@@ -19,64 +19,34 @@ TYPE_MAP = {
 }
 
 
-def read_info_schema(f: pysam.VariantFile) -> pd.DataFrame:
-    """
-    Read the schema of the INFO column of a VCF.
-
-    This currently uses pysam.
-
-    Parameters
-    ----------
-    f: pysam.VariantFile
-
-    Returns
-    -------
-    pd.DataFrame
-        Dataframe with [name, number, type] columns
-
-    Notes
-    -----
-    Possible values for `type` are: "Integer", "Float", "String", "Flag".
-
-    Possible values for `number` are:
-    - An integer (e.g. 0, 1, 2, 3, 4, etc.) - for fields where the number of
-      values per VCF record is fixed. 0 means the field is a "Flag".
-    - A string ("A", "G", "R") - for fields where the number of values per VCF
-      record is determined by the number of alts, the total number of alleles,
-      or the number of genotypes, respectively.
-    - A dot (".") - for fields where the number of values per VCF record
-      varies, is unknown, or is unbounded.
-    """
+def _read_info_schema(f: pysam.VariantFile) -> pd.DataFrame:
     return pd.DataFrame(
-        [(obj.name, obj.number, obj.type) for obj in f.header.info.values()],
-        columns=["name", "number", "type"],
+        [
+            (obj.name, obj.number, obj.type, obj.description)
+            for obj in f.header.info.values()
+        ],
+        columns=["name", "number", "type", "description"],
     )
 
 
-def read_sample_schema(f: pysam.VariantFile) -> pd.DataFrame:
-    """
-    Read the schema of the genotype sample columns of a VCF.
-
-    This currently uses pysam.
-
-    Parameters
-    ----------
-    f : pysam.VariantFile
-
-    Returns
-    -------
-    pd.DataFrame
-        Dataframe with [name, number, type] columns
-    """
+def _read_sample_schema(f: pysam.VariantFile) -> pd.DataFrame:
     return pd.DataFrame(
-        [(obj.name, obj.number, obj.type) for obj in f.header.formats.values()],
-        columns=["name", "number", "type"],
+        [
+            (obj.name, obj.number, obj.type, obj.description)
+            for obj in f.header.formats.values()
+        ],
+        columns=["name", "number", "type", "description"],
     )
 
 
 def _read_vcf_as_records(
-    f, query, info_fields, sample_fields, samples, include_unspecified
-):
+    f: pysam.VariantFile,
+    query: str | None,
+    info_fields: set[str],
+    sample_fields: set[str],
+    samples: list[str],
+    include_unspecified: bool,
+) -> list[dict[str, Any]]:
     if query is not None:
         query = f.fetch(*bioframe.parse_region(query))
     else:
@@ -95,7 +65,7 @@ def _read_vcf_as_records(
             "filters": list(record.filter.keys()),
         }
 
-        # Items
+        # Info
         for key, value in record.info.items():
             if key in info_fields:
                 if isinstance(value, tuple):
@@ -122,6 +92,62 @@ def _read_vcf_as_records(
         records.append(dct)
 
     return records
+
+
+def read_info_schema(path: str):
+    """
+    Read the schema of the INFO column of a VCF.
+
+    This currently uses pysam.
+
+    Parameters
+    ----------
+    path : str
+        Path to VCF file.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with [name, number, type] columns
+
+    Notes
+    -----
+    Possible values for `type` are: "Integer", "Float", "String", "Flag".
+
+    Possible values for `number` are:
+    - An integer (e.g. 0, 1, 2, 3, 4, etc.) - for fields where the number of
+      values per VCF record is fixed. 0 means the field is a "Flag".
+    - A string ("A", "G", "R") - for fields where the number of values per VCF
+      record is determined by the number of alts, the total number of alleles,
+      or the number of genotypes, respectively.
+    - A dot (".") - for fields where the number of values per VCF record
+      varies, is unknown, or is unbounded.
+    """
+    with pysam.VariantFile(path) as f:
+        return _read_info_schema(f)
+
+
+def read_sample_schema(path: str):
+    """
+    Read the schema of the genotype sample columns of a VCF.
+
+    This currently uses pysam.
+
+    Parameters
+    ----------
+    f : pysam.VariantFile
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with [name, number, type] columns
+
+    Notes
+    -----
+    Possible values for `type` are: "Integer", "Float", and "String".
+    """
+    with pysam.VariantFile(path) as f:
+        return _read_sample_schema(f)
 
 
 def read_vcf_as_pandas(
@@ -156,18 +182,18 @@ def read_vcf_as_pandas(
         Pandas DataFrame with columns corresponding to the requested fields.
     """
     with pysam.VariantFile(path) as f:
-        info_schema = read_info_schema(f)
-        sample_schema = read_sample_schema(f)
+        info_schema = _read_info_schema(f)
+        sample_schema = _read_sample_schema(f)
 
         if info_fields is None:
-            info_fields = set(info_schema["name"])
+            info_fields = list(info_schema["name"])
         if sample_fields is None:
-            sample_fields = set(sample_schema["name"])
+            sample_fields = list(sample_schema["name"])
         if samples is None:
             samples = list(f.header.samples)
 
         records = _read_vcf_as_records(
-            f, query, info_fields, sample_fields, samples, include_unspecified
+            f, query, set(info_fields), set(sample_fields), samples, include_unspecified
         )
 
     return pd.DataFrame.from_records(records)
@@ -205,18 +231,18 @@ def read_vcf_as_polars(
         Polars DataFrame with columns corresponding to the requested fields.
     """
     with pysam.VariantFile(path) as f:
-        info_schema = read_info_schema(f)
-        sample_schema = read_sample_schema(f)
+        info_schema = _read_info_schema(f)
+        sample_schema = _read_sample_schema(f)
 
         if info_fields is None:
-            info_fields = set(info_schema["name"])
+            info_fields = list(info_schema["name"])
         if sample_fields is None:
-            sample_fields = set(sample_schema["name"])
+            sample_fields = list(sample_schema["name"])
         if samples is None:
             samples = list(f.header.samples)
 
         records = _read_vcf_as_records(
-            f, query, info_fields, sample_fields, samples, include_unspecified
+            f, query, set(info_fields), set(sample_fields), samples, include_unspecified
         )
 
     return pl.from_records(records)
